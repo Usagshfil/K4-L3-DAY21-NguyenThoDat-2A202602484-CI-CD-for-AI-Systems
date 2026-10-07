@@ -58,15 +58,21 @@ jobs:
 
       - name: Authenticate to Cloud Storage
         env:
-          CREDS_JSON: ${{ secrets.STORAGE_CREDENTIALS }}
+          CREDS_RAW: ${{ secrets.STORAGE_CREDENTIALS }}
         run: |
           python - <<'PYEOF'
-          import json, os
-          creds = json.loads(os.environ['CREDS_JSON'])
+          import os, json, ast
+          raw = os.environ.get('CREDS_RAW', '').strip()
+          try:
+              creds = json.loads(raw)
+          except Exception:
+              creds = ast.literal_eval(raw)
+
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f"AWS_ACCESS_KEY_ID={creds['aws_access_key_id']}\n")
               f.write(f"AWS_SECRET_ACCESS_KEY={creds['aws_secret_access_key']}\n")
               f.write(f"AWS_DEFAULT_REGION={creds.get('region', 'ap-southeast-1')}\n")
+          print("AWS Credentials configured successfully.")
           PYEOF
 
       - name: Pull data with DVC
