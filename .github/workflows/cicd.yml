@@ -57,15 +57,17 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Authenticate to Cloud Storage
+        env:
+          CREDS_JSON: ${{ secrets.STORAGE_CREDENTIALS }}
         run: |
-          python -c "
+          python - <<'PYEOF'
           import json, os
-          creds = json.loads('''${{ secrets.STORAGE_CREDENTIALS }}''')
+          creds = json.loads(os.environ['CREDS_JSON'])
           with open(os.environ['GITHUB_ENV'], 'a') as f:
-              f.write(f\"AWS_ACCESS_KEY_ID={creds['aws_access_key_id']}\n\")
-              f.write(f\"AWS_SECRET_ACCESS_KEY={creds['aws_secret_access_key']}\n\")
-              f.write(f\"AWS_DEFAULT_REGION={creds.get('region', 'ap-southeast-1')}\n\")
-          "
+              f.write(f"AWS_ACCESS_KEY_ID={creds['aws_access_key_id']}\n")
+              f.write(f"AWS_SECRET_ACCESS_KEY={creds['aws_secret_access_key']}\n")
+              f.write(f"AWS_DEFAULT_REGION={creds.get('region', 'ap-southeast-1')}\n")
+          PYEOF
 
       - name: Pull data with DVC
         run: dvc pull data/train_batch1.csv.dvc data/holdout.csv.dvc
